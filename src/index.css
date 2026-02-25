@@ -1,10 +1,13 @@
 :root {
-  --bg: #0b1220;
-  --card: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.08);
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.65);
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f7f8;
+  --border: #e7e7ea;
+  --text: #111111;
+  --muted: #5b5b63;
   --accent: #f78e1e;
+  --accent-2: #ffb15a;
+  --shadow: 0 10px 24px rgba(17, 17, 17, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -16,9 +19,7 @@ html, body {
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1000px 500px at 15% 0%, rgba(247, 142, 30, 0.15), transparent 60%),
-              radial-gradient(900px 500px at 85% 10%, rgba(59, 130, 246, 0.12), transparent 60%),
-              var(--bg);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -28,6 +29,38 @@ a { color: inherit; }
   max-width: 1100px;
   margin: 0 auto;
   padding: 28px 16px 48px;
+}
+
+.topbar {
+  background: #111111;
+  border-bottom: 4px solid var(--accent);
+}
+
+.topbarInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brandTitle {
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+
+.brandSub {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
 }
 
 .header {
@@ -51,10 +84,10 @@ a { color: inherit; }
 }
 
 .card {
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
 }
 
 .muted {
@@ -69,11 +102,30 @@ a { color: inherit; }
 }
 
 .select {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
   padding: 8px 10px;
   border-radius: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.accentDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 .grid {
@@ -172,8 +224,8 @@ a { color: inherit; }
   align-items: center;
   padding: 10px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
 .cellMain {
@@ -184,7 +236,7 @@ a { color: inherit; }
 
 .cellNum {
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text);
 }
 
 .recentTable {
@@ -209,8 +261,8 @@ a { color: inherit; }
   align-items: center;
   padding: 10px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
 @media (max-width: 900px) {

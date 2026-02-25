@@ -171,158 +171,172 @@ export default function App() {
       legend: { display: false },
     },
     scales: {
-      y: { grid: { color: 'rgba(255,255,255,0.08)' }, ticks: { color: 'rgba(255,255,255,0.75)' }, border: { display: false } },
-      x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.75)' }, border: { display: false } },
+      y: { grid: { color: 'rgba(17,17,17,0.08)' }, ticks: { color: '#5b5b63' }, border: { display: false } },
+      x: { grid: { display: false }, ticks: { color: '#5b5b63' }, border: { display: false } },
     },
   }
 
   const url = baseUrl()
 
   return (
-    <div className="container">
-      <div className="header">
-        <div>
-          <h1 className="h1">Dashboard de Métricas</h1>
-          <p className="sub">Fuente: {url ? url : '-'}</p>
-          <p className="sub">Última actualización: {lastUpdated ? fmtTime(lastUpdated) : '-'}</p>
-        </div>
-
-        <div className="toolbar">
-          <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Ventana</span>
-          <select className="select" value={days} onChange={e => setDays(Number(e.target.value))}>
-            <option value={7}>7 días</option>
-            <option value={30}>30 días</option>
-            <option value={90}>90 días</option>
-            <option value={180}>180 días</option>
-          </select>
-
-          <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Auto-refresh</span>
-          <select className="select" value={refreshSec} onChange={e => setRefreshSec(Number(e.target.value))}>
-            <option value={0}>Off</option>
-            <option value={5}>5s</option>
-            <option value={15}>15s</option>
-            <option value={60}>60s</option>
-          </select>
+    <>
+      <div className="topbar">
+        <div className="topbarInner">
+          <div className="brand">
+            <div className="brandTitle">Universidad de Lima</div>
+            <div className="brandSub">Panel de analítica del dashboard</div>
+          </div>
+          <div className="pill">
+            <span className="accentDot" />
+            <span>Última actualización: {lastUpdated ? fmtTime(lastUpdated) : '-'}</span>
+          </div>
         </div>
       </div>
 
-      {loading && <div className="card loader">Cargando…</div>}
-      {!loading && error && <div className="card error">{error}</div>}
-
-      {!loading && !error && (
-        <>
-          <div className="grid">
-            <div className="card kpi">
-              <div className="kpiValue">{fmtNumber(overview?.page_views ?? 0)}</div>
-              <div className="kpiLabel">Page views</div>
-            </div>
-            <div className="card kpi">
-              <div className="kpiValue">{fmtNumber(overview?.sessions ?? 0)}</div>
-              <div className="kpiLabel">Sesiones</div>
-            </div>
-            <div className="card kpi">
-              <div className="kpiValue">{fmtNumber(overview?.events ?? 0)}</div>
-              <div className="kpiLabel">Eventos</div>
-            </div>
+      <div className="container">
+        <div className="header">
+          <div>
+            <h1 className="h1">Métricas de uso</h1>
+            <p className="sub">Servidor de analítica: {url ? url : '-'}</p>
           </div>
 
-          <div className="charts">
-            <div className="card chartCard">
-              <div className="chartTitle">Page views por día</div>
-              <div className="chartSub">Últimos {days} días</div>
-              <div style={{ height: '280px' }}>
-                <Line data={lineData} options={chartOptions} />
+          <div className="toolbar">
+            <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Período</span>
+            <select className="select" value={days} onChange={e => setDays(Number(e.target.value))}>
+              <option value={7}>Últimos 7 días</option>
+              <option value={30}>Últimos 30 días</option>
+              <option value={90}>Últimos 90 días</option>
+              <option value={180}>Últimos 180 días</option>
+            </select>
+
+            <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Actualización automática</span>
+            <select className="select" value={refreshSec} onChange={e => setRefreshSec(Number(e.target.value))}>
+              <option value={0}>Desactivada</option>
+              <option value={5}>Cada 5 segundos</option>
+              <option value={15}>Cada 15 segundos</option>
+              <option value={60}>Cada 60 segundos</option>
+            </select>
+          </div>
+        </div>
+
+        {loading && <div className="card loader">Cargando métricas…</div>}
+        {!loading && error && <div className="card error">No se pudieron cargar las métricas ({error}).</div>}
+
+        {!loading && !error && (
+          <>
+            <div className="grid">
+              <div className="card kpi">
+                <div className="kpiValue">{fmtNumber(overview?.page_views ?? 0)}</div>
+                <div className="kpiLabel">Visitas a la página</div>
+              </div>
+              <div className="card kpi">
+                <div className="kpiValue">{fmtNumber(overview?.sessions ?? 0)}</div>
+                <div className="kpiLabel">Sesiones (aprox. usuarios)</div>
+              </div>
+              <div className="card kpi">
+                <div className="kpiValue">{fmtNumber(overview?.events ?? 0)}</div>
+                <div className="kpiLabel">Interacciones (clics, filtros, búsquedas)</div>
               </div>
             </div>
 
-            <div className="card chartCard">
-              <div className="chartTitle">Top eventos</div>
-              <div className="chartSub">Últimos {days} días</div>
-              <div style={{ height: '280px' }}>
-                <Bar data={barData} options={chartOptions} />
-              </div>
-            </div>
-          </div>
-
-          <div className="sections">
-            <div className="card section">
-              <div className="sectionHeader">
-                <div>
-                  <div className="sectionTitle">Top páginas</div>
-                  <div className="sectionSub">Rutas más visitadas</div>
+            <div className="charts">
+              <div className="card chartCard">
+                <div className="chartTitle">Visitas por día</div>
+                <div className="chartSub">Últimos {days} días</div>
+                <div style={{ height: '280px' }}>
+                  <Line data={lineData} options={chartOptions} />
                 </div>
               </div>
-              <div className="table">
-                {topPages.map((i) => (
-                  <div key={i.path} className="row">
-                    <div className="cellMain">{i.path}</div>
-                    <div className="cellNum">{fmtNumber(i.count)}</div>
+
+              <div className="card chartCard">
+                <div className="chartTitle">Acciones más usadas</div>
+                <div className="chartSub">Últimos {days} días</div>
+                <div style={{ height: '280px' }}>
+                  <Bar data={barData} options={chartOptions} />
+                </div>
+              </div>
+            </div>
+
+            <div className="sections">
+              <div className="card section">
+                <div className="sectionHeader">
+                  <div>
+                    <div className="sectionTitle">Secciones más visitadas</div>
+                    <div className="sectionSub">Páginas dentro del dashboard</div>
+                  </div>
+                </div>
+                <div className="table">
+                  {topPages.map((i) => (
+                    <div key={i.path} className="row">
+                      <div className="cellMain">{i.path}</div>
+                      <div className="cellNum">{fmtNumber(i.count)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card section">
+                <div className="sectionHeader">
+                  <div>
+                    <div className="sectionTitle">Origen del tráfico</div>
+                    <div className="sectionSub">Sitios desde donde ingresan</div>
+                  </div>
+                </div>
+                <div className="table">
+                  {topReferrers.map((i) => (
+                    <div key={i.referrer} className="row">
+                      <div className="cellMain">{i.referrer}</div>
+                      <div className="cellNum">{fmtNumber(i.count)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card section">
+                <div className="sectionHeader">
+                  <div>
+                    <div className="sectionTitle">Clics a enlaces externos</div>
+                    <div className="sectionSub">Salidas hacia páginas de congresos</div>
+                  </div>
+                </div>
+                <div className="table">
+                  {topOutbound.map((i) => (
+                    <div key={i.url} className="row">
+                      <div className="cellMain"><a href={i.url} target="_blank" rel="noreferrer">{i.url}</a></div>
+                      <div className="cellNum">{fmtNumber(i.count)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="card section" style={{ marginTop: '12px' }}>
+              <div className="sectionHeader">
+                <div>
+                  <div className="sectionTitle">Actividad reciente</div>
+                  <div className="sectionSub">Últimas 25 acciones registradas</div>
+                </div>
+              </div>
+              <div className="recentTable">
+                <div className="recentHead">
+                  <div>Hora</div>
+                  <div>Tipo</div>
+                  <div>Nombre</div>
+                  <div>Sección</div>
+                </div>
+                {recentEvents.map((e, idx) => (
+                  <div key={`${e.created_at}-${idx}`} className="recentRow">
+                    <div className="muted">{fmtTime(e.created_at)}</div>
+                    <div>{e.type}</div>
+                    <div>{e.name || '-'}</div>
+                    <div className="muted">{e.path || '-'}</div>
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="card section">
-              <div className="sectionHeader">
-                <div>
-                  <div className="sectionTitle">Referers</div>
-                  <div className="sectionSub">De dónde vienen</div>
-                </div>
-              </div>
-              <div className="table">
-                {topReferrers.map((i) => (
-                  <div key={i.referrer} className="row">
-                    <div className="cellMain">{i.referrer}</div>
-                    <div className="cellNum">{fmtNumber(i.count)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card section">
-              <div className="sectionHeader">
-                <div>
-                  <div className="sectionTitle">Outbound links</div>
-                  <div className="sectionSub">Clicks a sitios de congresos</div>
-                </div>
-              </div>
-              <div className="table">
-                {topOutbound.map((i) => (
-                  <div key={i.url} className="row">
-                    <div className="cellMain"><a href={i.url} target="_blank" rel="noreferrer">{i.url}</a></div>
-                    <div className="cellNum">{fmtNumber(i.count)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="card section" style={{ marginTop: '12px' }}>
-            <div className="sectionHeader">
-              <div>
-                <div className="sectionTitle">Eventos recientes</div>
-                <div className="sectionSub">Últimos 25 eventos recibidos</div>
-              </div>
-            </div>
-            <div className="recentTable">
-              <div className="recentHead">
-                <div>Hora</div>
-                <div>Tipo</div>
-                <div>Nombre</div>
-                <div>Path</div>
-              </div>
-              {recentEvents.map((e, idx) => (
-                <div key={`${e.created_at}-${idx}`} className="recentRow">
-                  <div className="muted">{fmtTime(e.created_at)}</div>
-                  <div>{e.type}</div>
-                  <div>{e.name || '-'}</div>
-                  <div className="muted">{e.path || '-'}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </>
   )
 }
