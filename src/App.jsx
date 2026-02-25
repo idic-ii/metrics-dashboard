@@ -26,14 +26,37 @@ const authHeaders = () => {
   return { Authorization: `Bearer ${token}` }
 }
 
+const fetchJson = async (url, signal) => {
+  const res = await fetch(url, { headers: authHeaders(), signal })
+  if (!res.ok) throw new Error(`${res.status}`)
+  return await res.json()
+}
+
+const fmtNumber = (n) => {
+  const v = Number(n || 0)
+  return new Intl.NumberFormat('es-ES').format(v)
+}
+
+const fmtTime = (iso) => {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleString('es-ES')
+}
+
 export default function App() {
   const [days, setDays] = useState(30)
+  const [refreshSec, setRefreshSec] = useState(15)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   const [overview, setOverview] = useState(null)
   const [pageViewsSeries, setPageViewsSeries] = useState([])
   const [topEvents, setTopEvents] = useState([])
+  const [topPages, setTopPages] = useState([])
+  const [topReferrers, setTopReferrers] = useState([])
+  const [topOutbound, setTopOutbound] = useState([])
+  const [recentEvents, setRecentEvents] = useState([])
 
   useEffect(() => {
     const url = baseUrl()
@@ -43,42 +66,63 @@ export default function App() {
       return
     }
 
-    const controller = new AbortController()
+    let mounted = true
+    let intervalId = null
 
-    const run = async () => {
-      setLoading(true)
-      setError(null)
+    const run = async (signal, { isBackground } = {}) => {
+      if (!isBackground) {
+        setLoading(true)
+        setError(null)
+      }
 
       try {
-        const [overviewRes, pvRes, topRes] = await Promise.all([
-          fetch(`${url}/stats/overview?days=${days}`, { headers: authHeaders(), signal: controller.signal }),
-          fetch(`${url}/stats/timeseries?days=${days}&type=page_view`, { headers: authHeaders(), signal: controller.signal }),
-          fetch(`${url}/stats/top-events?days=${days}&limit=10`, { headers: authHeaders(), signal: controller.signal }),
+        const [overviewJson, pvJson, topEventsJson, topPagesJson, topRefJson, topOutJson, recentJson] = await Promise.all([
+          fetchJson(`${url}/stats/overview?days=${days}`, signal),
+          fetchJson(`${url}/stats/timeseries?days=${days}&type=page_view`, signal),
+          fetchJson(`${url}/stats/top-events?days=${days}&limit=10`, signal),
+          fetchJson(`${url}/stats/top-pages?days=${days}&limit=10`, signal),
+          fetchJson(`${url}/stats/top-referrers?days=${days}&limit=10`, signal),
+          fetchJson(`${url}/stats/top-outbound?days=${days}&limit=10`, signal),
+          fetchJson(`${url}/stats/recent-events?limit=25`, signal),
         ])
 
-        if (!overviewRes.ok) throw new Error(`overview_${overviewRes.status}`)
-        if (!pvRes.ok) throw new Error(`timeseries_${pvRes.status}`)
-        if (!topRes.ok) throw new Error(`top_${topRes.status}`)
-
-        const overviewJson = await overviewRes.json()
-        const pvJson = await pvRes.json()
-        const topJson = await topRes.json()
+        if (!mounted) return
 
         setOverview(overviewJson)
         setPageViewsSeries(Array.isArray(pvJson.series) ? pvJson.series : [])
-        setTopEvents(Array.isArray(topJson.items) ? topJson.items : [])
+        setTopEvents(Array.isArray(topEventsJson.items) ? topEventsJson.items : [])
+        setTopPages(Array.isArray(topPagesJson.items) ? topPagesJson.items : [])
+        setTopReferrers(Array.isArray(topRefJson.items) ? topRefJson.items : [])
+        setTopOutbound(Array.isArray(topOutJson.items) ? topOutJson.items : [])
+        setRecentEvents(Array.isArray(recentJson.items) ? recentJson.items : [])
+        setLastUpdated(new Date().toISOString())
+        setError(null)
       } catch (e) {
         if (e?.name === 'AbortError') return
+        if (!mounted) return
         setError(e?.message || 'Error cargando métricas')
       } finally {
+        if (!mounted) return
         setLoading(false)
       }
     }
 
-    run()
+    const controller = new AbortController()
+    run(controller.signal)
 
-    return () => controller.abort()
-  }, [days])
+    if (refreshSec > 0) {
+      intervalId = setInterval(() => {
+        const c = new AbortController()
+        run(c.signal, { isBackground: true })
+      }, refreshSec * 1000)
+    }
+
+    return () => {
+      mounted = false
+      controller.abort()
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [days, refreshSec])
 
   const lineData = useMemo(() => {
     const labels = pageViewsSeries.map(i => {
@@ -140,6 +184,7 @@ export default function App() {
         <div>
           <h1 className="h1">Dashboard de Métricas</h1>
           <p className="sub">Fuente: {url ? url : '-'}</p>
+          <p className="sub">Última actualización: {lastUpdated ? fmtTime(lastUpdated) : '-'}</p>
         </div>
 
         <div className="toolbar">
@@ -149,6 +194,14 @@ export default function App() {
             <option value={30}>30 días</option>
             <option value={90}>90 días</option>
             <option value={180}>180 días</option>
+          </select>
+
+          <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Auto-refresh</span>
+          <select className="select" value={refreshSec} onChange={e => setRefreshSec(Number(e.target.value))}>
+            <option value={0}>Off</option>
+            <option value={5}>5s</option>
+            <option value={15}>15s</option>
+            <option value={60}>60s</option>
           </select>
         </div>
       </div>
@@ -160,15 +213,15 @@ export default function App() {
         <>
           <div className="grid">
             <div className="card kpi">
-              <div className="kpiValue">{overview?.page_views ?? 0}</div>
+              <div className="kpiValue">{fmtNumber(overview?.page_views ?? 0)}</div>
               <div className="kpiLabel">Page views</div>
             </div>
             <div className="card kpi">
-              <div className="kpiValue">{overview?.sessions ?? 0}</div>
+              <div className="kpiValue">{fmtNumber(overview?.sessions ?? 0)}</div>
               <div className="kpiLabel">Sesiones</div>
             </div>
             <div className="card kpi">
-              <div className="kpiValue">{overview?.events ?? 0}</div>
+              <div className="kpiValue">{fmtNumber(overview?.events ?? 0)}</div>
               <div className="kpiLabel">Eventos</div>
             </div>
           </div>
@@ -188,6 +241,84 @@ export default function App() {
               <div style={{ height: '280px' }}>
                 <Bar data={barData} options={chartOptions} />
               </div>
+            </div>
+          </div>
+
+          <div className="sections">
+            <div className="card section">
+              <div className="sectionHeader">
+                <div>
+                  <div className="sectionTitle">Top páginas</div>
+                  <div className="sectionSub">Rutas más visitadas</div>
+                </div>
+              </div>
+              <div className="table">
+                {topPages.map((i) => (
+                  <div key={i.path} className="row">
+                    <div className="cellMain">{i.path}</div>
+                    <div className="cellNum">{fmtNumber(i.count)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card section">
+              <div className="sectionHeader">
+                <div>
+                  <div className="sectionTitle">Referers</div>
+                  <div className="sectionSub">De dónde vienen</div>
+                </div>
+              </div>
+              <div className="table">
+                {topReferrers.map((i) => (
+                  <div key={i.referrer} className="row">
+                    <div className="cellMain">{i.referrer}</div>
+                    <div className="cellNum">{fmtNumber(i.count)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card section">
+              <div className="sectionHeader">
+                <div>
+                  <div className="sectionTitle">Outbound links</div>
+                  <div className="sectionSub">Clicks a sitios de congresos</div>
+                </div>
+              </div>
+              <div className="table">
+                {topOutbound.map((i) => (
+                  <div key={i.url} className="row">
+                    <div className="cellMain"><a href={i.url} target="_blank" rel="noreferrer">{i.url}</a></div>
+                    <div className="cellNum">{fmtNumber(i.count)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="card section" style={{ marginTop: '12px' }}>
+            <div className="sectionHeader">
+              <div>
+                <div className="sectionTitle">Eventos recientes</div>
+                <div className="sectionSub">Últimos 25 eventos recibidos</div>
+              </div>
+            </div>
+            <div className="recentTable">
+              <div className="recentHead">
+                <div>Hora</div>
+                <div>Tipo</div>
+                <div>Nombre</div>
+                <div>Path</div>
+              </div>
+              {recentEvents.map((e, idx) => (
+                <div key={`${e.created_at}-${idx}`} className="recentRow">
+                  <div className="muted">{fmtTime(e.created_at)}</div>
+                  <div>{e.type}</div>
+                  <div>{e.name || '-'}</div>
+                  <div className="muted">{e.path || '-'}</div>
+                </div>
+              ))}
             </div>
           </div>
         </>
